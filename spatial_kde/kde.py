@@ -2,6 +2,24 @@ from typing import Optional, Tuple
 
 import geopandas as gpd
 import numpy as np
+import pandas as pd
+from scipy.spatial.kdtree import cKDTree
+from shapely.geometry import Point
+
+from spatial_kde.kernels import quartic
+
+
+def _kde_at(
+    row: pd.Series,
+    radius: float,
+    weight_col: Optional[str] = None,
+) -> float:
+    """Helper function used by pandas.DataFrame.apply() to calculate the KDE"""
+    return quartic(
+        distances=np.array(row.distances),
+        radius=radius,
+        weights=np.array(row[weight_col]) if weight_col else None,
+    )
 
 
 def spatial_kernel_density(
@@ -10,10 +28,11 @@ def spatial_kernel_density(
     output_pixel_size: float,
     weight_col: Optional[str] = None,
     extent: Optional[Tuple[float, float, float, float]] = None,
+    output_raster: str = None,
 ) -> np.ndarray:
     """Calculate Kernel Density / heatmap from ``points``
 
-    .. note:: Distance calcualtions are planar so care should be taken with data
+    .. note:: Distance calculations are planar so care should be taken with data
               that is in geographic coordinate systems
 
     Parameters
@@ -52,18 +71,54 @@ def spatial_kernel_density(
     else:
         minx, miny, maxx, maxy = extent
 
-    # TODO
     # create mesh grid array of the correct extent and pixel size
-    # the KDE will be evaluated at each point of this array
+    x_grid = np.arange(minx - radius, maxx + radius, output_pixel_size)
+    y_grid = np.arange(miny - radius, maxy + radius, output_pixel_size)
+    x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
 
-    # Get x/y locations of the grid so we have coordinates of every point at
-    # which to evaluate the KDE
+    # Create x/y coordinate pairs for neighbour calculations on the kd-tree
+    xy = np.column_stack((x_mesh.flatten(), y_mesh.flatten()))
 
-    # get centroids of all geometries and create KDTree
+    # Create a KDTree for all the points so we can more efficiently do a lookup
+    # for nearby points when calculating the KDE
+    kdt = cKDTree(
+        np.column_stack(
+            (
+                points.geometry.apply(lambda g: g.centroid.x).to_numpy(),
+                points.geometry.apply(lambda g: g.centroid.y).to_numpy(),
+            )
+        )
+    )
 
-    # create Z vector (i.e. the points of the KDE surface)
-    # calculate the KDE value using the quartic kernel for points of Z that have
-    # neighbours within the radius (i.e. the KDE will be non-zero)
+    # Find all the points on the grid that have neighbours within the search
+    # radius, these are the non-zero points of the KDE surface
+    kde_pnts = pd.DataFrame(kdt.query_ball_point(xy, r=radius), columns=["idxs"])
+    kde_pnts["num"] = kde_pnts.idxs.apply(len)
 
-    # reshape the output Z surface to 2D array
-    return np.array([1])
+    # Filter out points that have no neighbours within the search radius
+    # and therefore their KDE value will be 0
+    kde_pnts = kde_pnts.query("num > 0").drop(columns=["num"]).reset_index()
+
+    # Store the centroid (i.e. the KDE raster pixel centre), and calculate the
+    # distances all neighbours that are within the radius
+    # TODO geodesic distance support
+    kde_pnts["centroid"] = kde_pnts["index"].apply(lambda i: Point(xy[i]))
+    kde_pnts["distances"] = kde_pnts.apply(
+        lambda r: [r.centroid.distance(Point(xy[i])) for i in r.idxs], axis=1
+    )
+
+    # add the weights array
+    if weight_col is not None:
+        kde_pnts[weight_col] = kde_pnts.apply(
+            lambda r: [points.at[i, weight_col] for i in r.idxs],
+            axis=1,
+        )
+
+    # Calculate the KDE value for each point
+    kde_pnts["kde"] = kde_pnts.apply(lambda r: _kde_at(r, radius, weight_col), axis=1)
+
+    # TODO
+    # convert the KDE values into a 2D array
+    # Optionally write to raster? Or separate function?
+
+    return np.array()
