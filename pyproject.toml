@@ -1,0 +1,77 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "spatial-kde"
+version = "0.1.0"
+description = ""
+authors = ["mblackgeo <18327836+mblackgeo@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+pandas = "^1.4.0"
+geopandas = "^0.10.2"
+rasterio = "^1.2.10"
+Shapely = "^1.8.0"
+pyproj = "^3.3.0"
+numpy = "^1.22.1"
+scipy = "^1.7.3"
+pandarallel = "^1.5.4"
+typer = "^0.4.0"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.931"
+black = "^21.12b0"
+flake8 = "^4.0.1"
+typed-ast = "^1.5.2"
+pylint = "^2.12.2"
+pytest = "^6.2.5"
+coverage = {extras = ["toml"], version = "^6.3"}
+pytest-cov = "^3.0.0"
+pre-commit = "^2.17.0"
+
+[tool.poetry.scripts]
+skde = "spatial_kde.cli:app"
+
+[tool.coverage.paths]
+source = ["spatial_kde"]
+
+[tool.coverage.run]
+branch = true
+source = ["spatial_kde"]
+
+[tool.coverage.report]
+show_missing = true
+# fail_under = 100
+
+[tool.black]
+line-length = 88
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["spatial_kde"]
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+addopts = [
+    "--cov", "spatial_kde",
+    "--cov-report", "term-missing:skip-covered",
+    "-p", "no:warnings"
+]
