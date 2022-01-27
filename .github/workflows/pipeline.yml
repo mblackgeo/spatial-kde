@@ -22,15 +22,15 @@ jobs:
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --statistics
+          poetry run flake8 . --count --exit-zero --statistics
 
       - name: Check formatting with Black
-        run: black . --check
+        run: poetry run black . --check
 
       - name: Check import order with isort
-        run: isort -c spatial_kde
+        run: poetry run isort -c spatial_kde
 
       - name: Test with pytest
-        run: pytest -v --cov spatial_kde
+        run: poetry run pytest -v --cov spatial_kde
