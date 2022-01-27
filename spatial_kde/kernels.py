@@ -1,56 +1,43 @@
 import math
 from typing import Optional
 
-import geopandas as gpd
+import numpy as np
 
 
 def quartic(
-    points: gpd.GeoDataFrame,
-    distance_col: str,
+    distances: np.ndarray,
     radius: float,
-    weight_col: Optional[str] = None,
+    weights: Optional[np.ndarray] = None,
 ) -> float:
     """Quartic Kernel Density Estimation (after Silverman, 1986)
 
-    Given a GeoDataFrame of points (that are already filtered to the search
+    Given an array of distances (i.e. points that are within the search
     radius / bandwidth of the kernal), generate the kernel density estimate
-    using the Quartic kernel equation. Optionally, points can be weighted by
-    a column in the GeoDataFrame to increase the influence of specific features.
+    using the Quartic kernel equation. Optionally, weights for each point can
+    be provided.
 
     Parameters
     ----------
-    points : gpd.GeoDataFrame
-        Points that contribute to the KDE, i.e. within the bandwith / search
-        radius.
-    distance_col : str
-        Name of column in the points GeoDataFrame that holds the distance values.
-        Units are in the CRS of the input ``points``.
-    radius : Union[str, float]
-        Seach radius used (also known as bandwidth).
-        Units are in the CRS of the input ``points``.
-    weight_col : Optional[str], optional
-        Name of column containing weights for each point. This can be used to
-        increase the influence certain features have on the resultant KDE.
-        Known as `population_field` in Arcpy.
+    distances : np.ndarray
+        A 1D array containing distance values.
+    radius : float
+        Radius of the KDE.
+    weights : Optional[np.ndarray]
+        Optional weights (same shape as ``distance``) for each point in the KDE.
+        If None, weights will be uniform (i.e. 1).
 
     Returns
     -------
     float
         KDE estimate
     """
-    if weight_col is not None:
-        if weight_col not in points.columns:
-            raise ValueError(f"Input points data does not contain `{weight_col}`")
+    if weights is None:
+        weights = np.ones_like(distances)
 
-    # if there is no weight field then just assign it a constant weight of 1
-    # i.e. the KDE is only weighted by the number of points in the radius
-    if weight_col is None:
-        weight_col = "__weight"
-        points[weight_col] = 1
-
+    # TODO vectorise this
     kde_vals = [
-        (3 / math.pi) * pnt[weight_col] * ((1 - (pnt[distance_col] / radius) ** 2) ** 2)
-        for _, pnt in points.iterrows()
+        (3 / math.pi) * w * ((1 - (d / radius) ** 2) ** 2)
+        for w, d in zip(distances, weights)
     ]
 
     return (1 / (radius ** 2)) * sum(kde_vals)
