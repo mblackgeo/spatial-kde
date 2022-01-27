@@ -1,8 +1,9 @@
 help:
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
-install:  ## Create a new environment with poetry and install the package
+install:  ## Create a new environment with poetry and install with pre-commit hooks
 	poetry install
+	pre-commit install
 
 test:  ## Run the test suite using pytest
 	pytest
