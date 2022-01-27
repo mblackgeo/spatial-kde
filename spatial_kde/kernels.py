@@ -45,16 +45,12 @@ def quartic(
     # if there is no weight field then just assign it a constant weight of 1
     # i.e. the KDE is only weighted by the number of points in the radius
     if weight_col is None:
-        weight_col = "_pop_field"
+        weight_col = "__weight"
         points[weight_col] = 1
 
-    kde_vals = sum(
-        [
-            (3 / math.pi)
-            * pnt[weight_col]
-            * ((1 - (pnt[distance_col] / radius) ** 2) ** 2)
-            for _, pnt in points.itertuples()
-        ]
-    )
+    kde_vals = [
+        (3 / math.pi) * pnt[weight_col] * ((1 - (pnt[distance_col] / radius) ** 2) ** 2)
+        for _, pnt in points.iterrows()
+    ]
 
-    return (1 / (radius ** 2)) * kde_vals
+    return (1 / (radius ** 2)) * sum(kde_vals)
