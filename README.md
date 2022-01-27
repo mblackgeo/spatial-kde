@@ -12,3 +12,16 @@ The implementation of Kernel Density here uses the Quartic kernel for it's estim
 ## Usage
 
 ## Development
+
+Prequisites:
+
+* [poetry](https://python-poetry.org/)
+* [pre-commit](https://pre-commit.com/)
+
+The Makefile includes helpful commands setting a development environment (`make install`). Run `make help` to see additional available commands (e.g. linting, testing and so on).
+
+* [Pytest](https://docs.pytest.org/en/6.2.x/) is used for the functional tests of the application (see `/tests`).
+* Code is linted using [flake8](https://flake8.pycqa.org/en/latest/)
+* Code formatting is validated using [Black](https://github.com/psf/black)
+* [pre-commit](https://pre-commit.com/) is used to run these checks locally before files are pushed to git
+* The [Github Actions pipeline](.github/workflows/pipeline.yml) also runs these checks and tests
