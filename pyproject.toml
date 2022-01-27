@@ -68,10 +68,10 @@ multi_line_output = 3
 line_length = 88
 known_first_party = ["spatial_kde"]
 
-[tool.pytest.ini_options]
-testpaths = "tests"
-addopts = [
-    "--cov", "spatial_kde",
-    "--cov-report", "term-missing:skip-covered",
-    "-p", "no:warnings"
-]
+# [tool.pytest.ini_options]
+# testpaths = "tests"
+# addopts = [
+#     "--cov", "spatial_kde",
+#     "--cov-report", "term-missing:skip-covered",
+#     "-p", "no:warnings"
+# ]
