@@ -1,5 +1,5 @@
 # Spatial Kernel Density Esimation
-Create Spatial Kernel Density / Heatmap (as a numpy array or raster) from point based vector data, à la QGIS / ArcGIS.
+Create Spatial Kernel Density / Heatmap raster from point based vector data, à la QGIS / ArcGIS.
 
 ![Example showing KDE generated from weighted points](example.png)
 
