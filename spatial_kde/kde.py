@@ -48,11 +48,6 @@ def spatial_kernel_density(
     scaled : bool
         If True will output mathematically scaled values, else will output raw
         values.
-
-    Returns
-    -------
-    np.ndarray
-        Numpy array containing the KDE / heatmap generated
     """
     if weight_col and weight_col not in points.columns:
         raise ValueError(f"`{weight_col}` column not found in `points` GeoDataFrame")
