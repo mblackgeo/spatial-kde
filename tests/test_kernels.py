@@ -60,3 +60,13 @@ def test_quartic_weighted_scaled(points_gdf):
         scaled=True,
     )
     assert out == pytest.approx(0.2552 * len(points_gdf) * 2, abs=1e-3)
+
+
+def test_quartic_incorect_weights_distances(points_gdf):
+    with pytest.raises(ValueError):
+        quartic(
+            distances=[1, 2, 3],
+            radius=1,
+            weights=[1, 2],
+            scaled=True,
+        )

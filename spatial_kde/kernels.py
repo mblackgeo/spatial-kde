@@ -54,6 +54,14 @@ def quartic(
     weights = np.ones_like(distances) if weights is None else weights
     kernel_func = quartic_scaled if scaled else quartic_raw
 
+    if len(weights) != len(distances):
+        raise ValueError(
+            (
+                "Must have the same number of weights and distances "
+                f"Got {len(distances):,} distances and {len(weights):,} weights"
+            )
+        )
+
     # TODO vectorise this
     kde_vals = [
         kernel_func(distance=dist, radius=radius, weight=weight)
