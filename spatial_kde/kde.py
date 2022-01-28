@@ -90,8 +90,8 @@ def spatial_kernel_density(
                 if dist <= radius:
                     distances.append(dist)
 
-                if weight_col:
-                    weights.append(pnt[weight_col])
+                    if weight_col:
+                        weights.append(getattr(pnt, weight_col))
 
             if distances:
                 Z[row, col] = quartic(
