@@ -4,10 +4,27 @@ from typing import Optional
 import numpy as np
 
 
+def quartic_raw(distance: float, radius: float, weight: float = 1):
+    """Calculate raw Quartic KDE value"""
+    return weight * (math.pow(1.0 - math.pow(distance / radius, 2), 2))
+
+
+def quartic_scaled(distance: float, radius: float, weight: float = 1):
+    """Calculate mathematically scaled Quartic KDE value"""
+    # Normalizing constant
+    k = 116.0 / (5.0 * math.pi * math.pow(radius, 2))
+
+    # Derived from Wand and Jones (1995), p. 175
+    return weight * (
+        k * (15.0 / 16.0) * math.pow(1.0 - math.pow(distance / radius, 2), 2)
+    )
+
+
 def quartic(
     distances: np.ndarray,
     radius: float,
     weights: Optional[np.ndarray] = None,
+    scaled: bool = False,
 ) -> float:
     """Quartic Kernel Density Estimation (after Silverman, 1986)
 
@@ -25,19 +42,22 @@ def quartic(
     weights : Optional[np.ndarray]
         Optional weights (same shape as ``distance``) for each point in the KDE.
         If None, weights will be uniform (i.e. 1).
+    scaled : bool
+        If True will output mathematically scaled values, else will output raw
+        values.
 
     Returns
     -------
     float
         KDE estimate
     """
-    if weights is None:
-        weights = np.ones_like(distances)
+    weights = np.ones_like(distances) if weights is None else weights
+    kernel_func = quartic_scaled if scaled else quartic_raw
 
     # TODO vectorise this
     kde_vals = [
-        (3 / math.pi) * w * ((1 - (d / radius) ** 2) ** 2)
-        for w, d in zip(distances, weights)
+        kernel_func(distance=dist, radius=radius, weight=weight)
+        for dist, weight in zip(distances, weights)
     ]
 
-    return (1 / (radius ** 2)) * sum(kde_vals)
+    return sum(kde_vals)
