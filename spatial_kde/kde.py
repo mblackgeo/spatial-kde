@@ -2,8 +2,10 @@ from typing import Optional
 
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 import rasterio
 from rasterio.crs import CRS
+from scipy.spatial.kdtree import cKDTree
 from shapely.geometry import Point
 
 from spatial_kde.kernels import quartic
@@ -72,36 +74,51 @@ def spatial_kernel_density(
     xc = x_mesh + (output_pixel_size / 2)
     yc = y_mesh + (output_pixel_size / 2)
 
+    # stack the coordinates so we can do vectorised nearest neighbour ops
+    xy = np.column_stack((xc.flatten(), yc.flatten()))
+
+    # Create a KDTree for all the points so we can more efficiently do a lookup
+    # for nearby points when calculating the KDE
+    kdt = cKDTree(
+        np.column_stack(
+            (
+                points.geometry.apply(lambda g: g.centroid.x).to_numpy(),
+                points.geometry.apply(lambda g: g.centroid.y).to_numpy(),
+            )
+        )
+    )
+
+    # Find all the points on the grid that have neighbours within the search
+    # radius, these are the non-zero points of the KDE surface
+    kde_pnts = pd.DataFrame(kdt.query_ball_point(xy, r=radius), columns=["nn"])
+
+    # Filter out points that have no neighbours within the search radius
+    # and therefore their KDE value will be 0
+    kde_pnts["num"] = kde_pnts.nn.apply(len)
+    kde_pnts = kde_pnts.query("num > 0").drop(columns=["num"])
+
     # Slow implementation iterating over every pixel / point
     ndv = -9999
-    Z = ndv + np.zeros_like(xc)
+    Z_scalar = (ndv + np.zeros_like(xc)).flatten()
 
-    for row in range(xc.shape[0]):
-        for col in range(xc.shape[1]):
+    # calculate the KDE value for every point that has neighbours
+    for row in kde_pnts.itertuples():
+        centre = Point(xy[row.Index])
+        distances = [centre.distance(points.at[i, "geometry"]) for i in row.nn]
 
-            distances = []
-            weights = []
-            for pnt in points.itertuples():
-                # Euclidean distance (i.e. planar)
-                # TODO add geodesic distance support
-                centre = Point((xc[row][col], yc[row][col]))
-                dist = centre.distance(pnt.geometry)
+        weights = None
+        if weight_col:
+            weights = [points.at[i, weight_col] for i in row.nn]
 
-                if dist <= radius:
-                    distances.append(dist)
-
-                    if weight_col:
-                        weights.append(getattr(pnt, weight_col))
-
-            if distances:
-                Z[row, col] = quartic(
-                    distances=distances,
-                    radius=radius,
-                    weights=weights if weight_col else None,
-                    scaled=scaled,
-                )
+        Z_scalar[row.Index] = quartic(
+            distances=distances,
+            radius=radius,
+            weights=weights,
+            scaled=scaled,
+        )
 
     # create the output raster
+    Z = Z_scalar.reshape(xc.shape)
     with rasterio.open(
         fp=output_path,
         mode="w",
