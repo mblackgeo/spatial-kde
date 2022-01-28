@@ -62,6 +62,7 @@ def spatial_kernel_density(
     bounds = Bounds.from_gdf(gdf=points, radius=radius)
 
     # Create x/y coordinate pairs for neighbour calculations on the kd-tree
+    # this is the "top left" coordinate, not the centre of the pixel
     x_mesh, y_mesh = np.meshgrid(
         bounds.x_coords(output_pixel_size),
         bounds.y_coords(output_pixel_size),
@@ -102,11 +103,11 @@ def spatial_kernel_density(
 
     # create the output raster
     with rasterio.open(
-        output_path,
-        "w",
+        fp=output_path,
+        mode="w",
         driver=output_driver,
-        width=Z.shape[1],
         height=Z.shape[0],
+        width=Z.shape[1],
         count=1,
         dtype=Z.dtype,
         crs=CRS.from_user_input(points.crs),
@@ -120,4 +121,6 @@ def spatial_kernel_density(
         ),
         nodata=ndv,
     ) as dst:
-        dst.write(Z, 1)
+        # numpy arrays start at the "bottom left", whereas rasters are written
+        # from the "top left", hence flipping the array up-down before writing
+        dst.write(np.flipud(Z), 1)
