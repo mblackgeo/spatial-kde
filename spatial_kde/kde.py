@@ -96,6 +96,7 @@ def spatial_kernel_density(
     ndv = -9999
     Z_scalar = (ndv + np.zeros_like(xc)).flatten()
 
+    # TODO vectorise this
     # calculate the KDE value for every point that has neighbours
     for row in kde_pnts.itertuples():
         centre = Point(xy[row.Index])
