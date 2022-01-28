@@ -43,9 +43,6 @@ def spatial_kernel_density(
         A column in ``points`` to weight the kernel density by, any points that
         are NaN in this field will not contribute to the KDE.
         If None, the all points will have uniform weight of 1.
-    extent : Optional[Tuple[float, ...]], optional
-        Extent of output array as (minx, miny, maxx, maxy)
-        If None, uses the total bounds of the ``points``
     scaled : bool
         If True will output mathematically scaled values, else will output raw
         values.
