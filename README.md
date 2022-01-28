@@ -11,6 +11,83 @@ The implementation of Kernel Density here uses the Quartic kernel for it's estim
 
 ## Usage
 
+After installation, the `skde` tool is available from the command line with the following usage:
+
+```shell
+Usage: skde [OPTIONS] VECTOR OUTPUT
+
+  Create a Spatial Kernel Density / Heatmap raster from an input vector.
+
+  The input vector file must be readable by GeoPandas and contain Point type
+  geometry (for non-point geometries the centroid will be used for the KDE).
+
+Arguments:
+  VECTOR  Path to input vector file  [required]
+  OUTPUT  Output path for created raster  [required]
+
+Options:
+  --radius FLOAT                  Radius/Bandwith for the KDE. Same units as
+                                  the CRS of `vector`.  [default: 1]
+  --output-pixel-size FLOAT       Output pixel size (resolution). Same units
+                                  as the CRS of `vector`.  [default: 1]
+  --output-driver TEXT            Output driver (file format) used by rasterio
+                                  (Default = GeoTiff).  [default: GTiff]
+  --weight-field TEXT             Optional field in `vector` containing
+                                  weights of each point.
+  --scaled / --no-scaled          Set to True to scale the KDE values, leave
+                                  false to use raw values.  [default: no-
+                                  scaled]
+```
+
+Alternatively, the [`spatial_kernel_density`](spatial_kde/kde.py) function can be used in python:
+
+```python
+from typing import Optional
+
+import geopandas as gpd
+from spatial_kde import spatial_kernel_density
+
+
+spatial_kernel_density(
+    points: gpd.GeoDataFrame = gdf,
+    radius: float = 1.0,
+    output_path: str = "/output/path.tif",
+    output_pixel_size: float = 1.0,
+    output_driver: str = "GTiff",
+    weight_col: Optional[str] = None,
+    scaled: bool = False,
+)
+
+    """Calculate Kernel Density / heatmap from ``points``
+
+    .. note:: Distance calculations are planar so care should be taken with data
+              that is in geographic coordinate systems
+
+    Parameters
+    ----------
+    points : gpd.GeoDataFrame
+        Input GeoDataFrame of points to generate a KDE from
+    radius : float
+        Radius of KDE, same units as the coordinate reference system of ``points``
+        Sometimes referred to as search radius or bandwidth
+    output_path : str
+        Path to write output raster to
+    output_pixel_size : float
+        Output cell/pixel size of the created array. Same units as the coordinate
+        reference system of ``points``
+    output_driver : str
+        Output format (driver) used to create image. See also
+        https://rasterio.readthedocs.io/en/latest/api/rasterio.drivers.html
+    weight_col : Optional[str], optional
+        A column in ``points`` to weight the kernel density by, any points that
+        are NaN in this field will not contribute to the KDE.
+        If None, the all points will have uniform weight of 1.
+    scaled : bool
+        If True will output mathematically scaled values, else will output raw
+        values.
+    """
+```
+
 ## Development
 
 Prequisites:
