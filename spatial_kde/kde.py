@@ -88,13 +88,12 @@ def spatial_kernel_density(
     kde_pnts = pd.DataFrame(kdt.query_ball_point(xy, r=radius), columns=["nn"])
 
     # Filter out points that have no neighbours within the search radius
-    # and therefore their KDE value will be 0
     kde_pnts["num"] = kde_pnts.nn.apply(len)
     kde_pnts = kde_pnts.query("num > 0").drop(columns=["num"])
 
     # Slow implementation iterating over every pixel / point
     ndv = -9999
-    Z_scalar = (ndv + np.zeros_like(xc)).flatten()
+    z_scalar = (ndv + np.zeros_like(xc)).flatten()
 
     # TODO vectorise this
     # calculate the KDE value for every point that has neighbours
@@ -106,7 +105,7 @@ def spatial_kernel_density(
         if weight_col:
             weights = [points.at[i, weight_col] for i in row.nn]
 
-        Z_scalar[row.Index] = quartic(
+        z_scalar[row.Index] = quartic(
             distances=distances,
             radius=radius,
             weights=weights,
@@ -114,26 +113,26 @@ def spatial_kernel_density(
         )
 
     # create the output raster
-    Z = Z_scalar.reshape(xc.shape)
+    z = z_scalar.reshape(xc.shape)
     with rasterio.open(
         fp=output_path,
         mode="w",
         driver=output_driver,
-        height=Z.shape[0],
-        width=Z.shape[1],
+        height=z.shape[0],
+        width=z.shape[1],
         count=1,
-        dtype=Z.dtype,
+        dtype=z.dtype,
         crs=CRS.from_user_input(points.crs),
         transform=rasterio.transform.from_bounds(
             west=bounds.min_x,
             south=bounds.min_y,
             east=bounds.max_x,
             north=bounds.max_y,
-            width=Z.shape[1],
-            height=Z.shape[0],
+            width=z.shape[1],
+            height=z.shape[0],
         ),
         nodata=ndv,
     ) as dst:
         # numpy arrays start at the "bottom left", whereas rasters are written
         # from the "top left", hence flipping the array up-down before writing
-        dst.write(np.flipud(Z), 1)
+        dst.write(np.flipud(z), 1)
