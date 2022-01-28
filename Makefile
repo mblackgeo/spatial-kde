@@ -6,7 +6,7 @@ install:  ## Create a new environment with poetry and install with pre-commit ho
 	pre-commit install
 
 test:  ## Run the test suite using pytest
-	poetry run pytest
+	poetry run pytest --cov spatial_kde
 
 lint:  ## Run linting checks with flake8 and black
 	poetry run flake8 spatial_kde/
