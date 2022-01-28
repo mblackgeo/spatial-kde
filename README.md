@@ -108,5 +108,5 @@ The Makefile includes helpful commands setting a development environment, get st
 - [ ] Github actions pipeline runs on a matrix of python versions
 - [ ] Documentation (e.g. mkdocs, read-the-docs w/ sphinx or similar)
 - [ ] Tooling for managing versioning/releasing (e.g. bump2version)
-- [ ] Makefile commands for releasing to (test) pypi
+- [x] Makefile commands for releasing to (test) pypi
 - [ ] Support geodesic distance calculation

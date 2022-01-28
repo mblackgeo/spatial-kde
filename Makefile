@@ -14,3 +14,10 @@ lint:  ## Run linting checks with flake8 and black
 
 format:  ## Run black to format the code
 	poetry run black .
+
+test-release:  ## Build the package and releast to test-PyPI
+	poetry config repositories.testpypi https://test.pypi.org/legacy/
+	poetry publish --build -r testpypi
+
+release:  ## Build the package and release to PyPI
+	poetry publish
