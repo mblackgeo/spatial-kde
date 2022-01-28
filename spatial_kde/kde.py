@@ -46,6 +46,9 @@ def spatial_kernel_density(
     extent : Optional[Tuple[float, ...]], optional
         Extent of output array as (minx, miny, maxx, maxy)
         If None, uses the total bounds of the ``points``
+    scaled : bool
+        If True will output mathematically scaled values, else will output raw
+        values.
 
     Returns
     -------
