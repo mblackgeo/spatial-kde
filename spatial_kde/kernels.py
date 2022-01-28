@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -21,9 +21,9 @@ def quartic_scaled(distance: float, radius: float, weight: float = 1):
 
 
 def quartic(
-    distances: np.ndarray,
+    distances: Union[List[float], np.ndarray],
     radius: float,
-    weights: Optional[np.ndarray] = None,
+    weights: Optional[Union[List[float], np.ndarray]] = None,
     scaled: bool = False,
 ) -> float:
     """Quartic Kernel Density Estimation (after Silverman, 1986)
