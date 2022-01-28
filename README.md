@@ -5,9 +5,15 @@ Create Spatial Kernel Density / Heatmap raster from point based vector data, à 
 
 Creates a kernel density (heatmap) raster from vector point data using kernel density estimation. The density is calculated based on the number of points in a location, with larger numbers of clustered points resulting in larger values, and points can be optionally weighted. Kernel Density / Heatmaps allow easy for identification of hotspots and clustering of points. This implementation provides an equivalent to [QGIS' Heatmap](https://docs.qgis.org/3.16/en/docs/user_manual/processing_algs/qgis/interpolation.html#heatmap-kernel-density-estimation) and [ArcGIS/ArcMap/ArcPro's Kernel Density spatial analyst](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/kernel-density.htm) function. Note that any distance calculations are planar, therefore care should be taken when using points over large areas that are in a geographic coordinate system.
 
-The implementation of Kernel Density here uses the Quartic kernel for it's estimates, with the methodology equivialent to the ArcGIS documentation explaining how [Kernel Density](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/how-kernel-density-works.htm) works. There are many alternative KDE functions available in python that may offer better performance, for example [scipy](https://docs.scipy.org/doc/scipy/reference/stats.html#univariate-and-multivariate-kernel-density-estimation), [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KernelDensity.html), [KDEpy](https://kdepy.readthedocs.io/en/latest/index.html), though these alternatives may not perform KDE in the same manner as GIS software (namely the Quartic kernel with optional weights).
+The implementation of kernel density uses the Quartic kernel for it's estimates, with the methodology implemented [following QGIS](https://github.com/qgis/QGIS/blob/master/src/analysis/raster/qgskde.cpp) and as described in ArcGIS' documentation explaining [how Kernel Density works](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/how-kernel-density-works.htm). There are many alternative kernel density estimate (KDE) functions available in popular python libraries that may offer better performance, for example [scipy](https://docs.scipy.org/doc/scipy/reference/stats.html#univariate-and-multivariate-kernel-density-estimation), [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KernelDensity.html), [KDEpy](https://kdepy.readthedocs.io/en/latest/index.html) etc., though these alternatives may not implement the Quartic kernel (with optional weights), as is typically found in GIS software. Additionally, performance with this package will be reduced compared to the native C++ implementaion in QGIS.
 
 ## Installation
+
+The package can be installed from pip:
+
+```shell
+pip install spatial-kde
+```
 
 ## Usage
 
@@ -110,3 +116,4 @@ The Makefile includes helpful commands setting a development environment, get st
 - [ ] Tooling for managing versioning/releasing (e.g. bump2version)
 - [x] Makefile commands for releasing to (test) pypi
 - [ ] Support geodesic distance calculation
+- [ ] Performance improvements
