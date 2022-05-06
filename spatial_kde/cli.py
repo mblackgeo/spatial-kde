@@ -32,7 +32,7 @@ def kde_from_vector(
         default=False,
         help="Set to True to scale the KDE values, leave false to use raw values.",
     ),
-):
+) -> None:
     """
     Create a Spatial Kernel Density / Heatmap raster from an input vector.
 

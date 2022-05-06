@@ -28,7 +28,7 @@ class Bounds:
         return len(self.y_coords(pixel_size))
 
     @classmethod
-    def from_gdf(cls, gdf: gpd.GeoDataFrame, radius: float = 0):
+    def from_gdf(cls, gdf: gpd.GeoDataFrame, radius: float = 0) -> "Bounds":
         """Calculate the bounds of a GeoDataFrame padded by radius amount
 
         Parameters

@@ -4,12 +4,12 @@ from typing import List, Optional, Union
 import numpy as np
 
 
-def quartic_raw(distance: float, radius: float, weight: float = 1):
+def quartic_raw(distance: float, radius: float, weight: float = 1) -> float:
     """Calculate raw Quartic KDE value"""
     return weight * (math.pow(1.0 - math.pow(distance / radius, 2), 2))
 
 
-def quartic_scaled(distance: float, radius: float, weight: float = 1):
+def quartic_scaled(distance: float, radius: float, weight: float = 1) -> float:
     """Calculate mathematically scaled Quartic KDE value"""
     # Normalizing constant
     k = 116.0 / (5.0 * math.pi * math.pow(radius, 2))
