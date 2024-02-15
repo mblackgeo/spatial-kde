@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import rasterio
 from rasterio.crs import CRS
-from scipy.spatial.kdtree import cKDTree
+from scipy.spatial import cKDTree
 from shapely.geometry import Point
 
 from spatial_kde.kernels import quartic
