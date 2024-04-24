@@ -19,7 +19,7 @@ jobs:
         run: python -c "import sys; print(sys.version)"
 
       - name: Install poetry
-        run: pip install poetry==1.1.12
+        run: pip install poetry==1.8.2
 
       - name: Install code
         run: poetry install
