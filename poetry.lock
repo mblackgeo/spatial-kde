@@ -753,7 +753,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-ena
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.13"
-content-hash = "77c5703bd408be27e1e57f109239c2668e2451a20181a3ba2f5861965dc45eab"
+content-hash = "768cb8eacea9b0a9494cfddc1a433040969e597d13ea7fb1c665e46e79d1f271"
 
 [metadata.files]
 affine = []
