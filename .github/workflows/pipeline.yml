@@ -3,7 +3,7 @@ name: lint and test
 on: [push, pull_request]
 
 jobs:
-  install_and_test:
+  lint_and_test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
