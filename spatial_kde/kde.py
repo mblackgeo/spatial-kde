@@ -5,7 +5,10 @@ import numpy as np
 import pandas as pd
 import rasterio
 from rasterio.crs import CRS
-from scipy.spatial import cKDTree
+
+from scipy.spatial.kdtree import cKDTree
+from scipy.spatial import distance
+
 from shapely.geometry import Point
 
 from spatial_kde.kernels import quartic
@@ -74,14 +77,13 @@ def spatial_kernel_density(
 
     # Create a KDTree for all the points so we can more efficiently do a lookup
     # for nearby points when calculating the KDE
-    kdt = cKDTree(
-        np.column_stack(
-            (
-                points.geometry.apply(lambda g: g.centroid.x).to_numpy(),
-                points.geometry.apply(lambda g: g.centroid.y).to_numpy(),
-            )
+    points_np_array = np.column_stack(
+        (
+            points.geometry.apply(lambda g: g.centroid.x).to_numpy(),
+            points.geometry.apply(lambda g: g.centroid.y).to_numpy(),
         )
     )
+    kdt = cKDTree(points_np_array)
 
     # Find all the points on the grid that have neighbours within the search
     # radius, these are the non-zero points of the KDE surface
@@ -91,15 +93,15 @@ def spatial_kernel_density(
     kde_pnts["num"] = kde_pnts.nn.apply(len)
     kde_pnts = kde_pnts.query("num > 0").drop(columns=["num"])
 
-    # Slow implementation iterating over every pixel / point
+    # create an array to store the KDE values
     ndv = -9999
     z_scalar = (ndv + np.zeros_like(xc)).flatten()
 
-    # TODO vectorise this
     # calculate the KDE value for every point that has neighbours
     for row in kde_pnts.itertuples():
-        centre = Point(xy[row.Index])
-        distances = [centre.distance(points.at[i, "geometry"]) for i in row.nn]
+        centre = [xy[row.Index]]
+        corresponding_points = points_np_array[row.nn]
+        distances = distance.cdist(centre, corresponding_points, 'euclidean').flatten()
 
         weights = None
         if weight_col:
