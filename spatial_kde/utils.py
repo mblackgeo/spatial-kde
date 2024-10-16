@@ -5,19 +5,19 @@ import numpy as np
 
 
 @dataclass
-class Bounds:
+class Bounds():
     min_x: float
     min_y: float
     max_x: float
     max_y: float
 
-    def x_coords(self, pixel_size: float) -> np.ndarray:
+    def x_coords(self, pixel_size: float, dtype: type= np.float32) -> np.ndarray:
         """Calculate all x coordinates for given ``pixel_size``"""
-        return np.arange(self.min_x, self.max_x, pixel_size)
+        return np.arange(self.min_x, self.max_x, pixel_size, dtype=dtype)
 
-    def y_coords(self, pixel_size: float) -> np.ndarray:
+    def y_coords(self, pixel_size: float, dtype: type= np.float32) -> np.ndarray:
         """Calculate all y coordinates for given ``pixel_size``"""
-        return np.arange(self.min_y, self.max_y, pixel_size)
+        return np.arange(self.min_y, self.max_y, pixel_size, dtype=dtype)
 
     def width(self, pixel_size: float) -> int:
         """Return the width (x / cols) for given ``pixel_size``"""
@@ -28,7 +28,7 @@ class Bounds:
         return len(self.y_coords(pixel_size))
 
     @classmethod
-    def from_gdf(cls, gdf: gpd.GeoDataFrame, radius: float = 0) -> "Bounds":
+    def from_gdf(cls, gdf: gpd.GeoDataFrame, radius: float = 0, dtype= np.float32):
         """Calculate the bounds of a GeoDataFrame padded by radius amount
 
         Parameters
@@ -46,8 +46,8 @@ class Bounds:
         """
         min_x, min_y, max_x, max_y = gdf.total_bounds
         return cls(
-            min_x=min_x - radius,
-            min_y=min_y - radius,
-            max_x=max_x + radius,
-            max_y=max_y + radius,
+            min_x=dtype(min_x - radius),
+            min_y=dtype(min_y - radius),
+            max_x=dtype(max_x + radius),
+            max_y=dtype(max_y + radius),
         )

@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 import rasterio
 from rasterio.crs import CRS
-from scipy.spatial import cKDTree
+from scipy.spatial.kdtree import cKDTree
+
+from scipy.spatial import distance
 from shapely.geometry import Point
 
 from spatial_kde.kernels import quartic
@@ -13,13 +15,15 @@ from spatial_kde.utils import Bounds
 
 
 def spatial_kernel_density(
-    points: gpd.GeoDataFrame,
-    radius: float,
-    output_path: str,
-    output_pixel_size: float,
-    output_driver: str = "GTiff",
-    weight_col: Optional[str] = None,
-    scaled: bool = False,
+        points: gpd.GeoDataFrame,
+        radius: float,
+        output_path: str,
+        output_pixel_size: float,
+        output_driver: str = "GTiff",
+        weight_col: Optional[str] = None,
+        scaled: bool = False,
+        chunk_size: int = 100000000,
+        dtype: type = np.float32,
 ) -> None:
     """Calculate Kernel Density / heatmap from ``points``
 
@@ -48,6 +52,10 @@ def spatial_kernel_density(
     scaled : bool
         If True will output mathematically scaled values, else will output raw
         values.
+    chunk_size : int
+        Number of grid points to process in each chunk, default is 10000000. Decrease it to reduce memory usage but increases processing time.
+    dtype : type
+        Data type of the output raster, default is np.float32
     """
     if weight_col and weight_col not in points.columns:
         raise ValueError(f"`{weight_col}` column not found in `points` GeoDataFrame")
@@ -56,13 +64,13 @@ def spatial_kernel_density(
         points = points.dropna(subset=[weight_col])
 
     # Get the bounding box extent for the new raster
-    bounds = Bounds.from_gdf(gdf=points, radius=radius)
-
+    bounds = Bounds.from_gdf(gdf=points, radius=radius, dtype=dtype)
+    print(bounds)
     # Create x/y coordinate pairs for neighbour calculations on the kd-tree
     # this is the "top left" coordinate, not the centre of the pixel
     x_mesh, y_mesh = np.meshgrid(
-        bounds.x_coords(output_pixel_size),
-        bounds.y_coords(output_pixel_size),
+        bounds.x_coords(output_pixel_size, dtype=dtype),
+        bounds.y_coords(output_pixel_size, dtype=dtype),
     )
 
     # create the coordinate grid of the pixel centre points
@@ -74,64 +82,87 @@ def spatial_kernel_density(
 
     # Create a KDTree for all the points so we can more efficiently do a lookup
     # for nearby points when calculating the KDE
-    kdt = cKDTree(
-        np.column_stack(
-            (
-                points.geometry.apply(lambda g: g.centroid.x).to_numpy(),
-                points.geometry.apply(lambda g: g.centroid.y).to_numpy(),
-            )
+    points_np_array = np.column_stack(
+        (
+            points.geometry.apply(lambda g: g.centroid.x).to_numpy(dtype=dtype),
+            points.geometry.apply(lambda g: g.centroid.y).to_numpy(dtype=dtype),
         )
     )
 
+    kdt = cKDTree(data=points_np_array)
     # Find all the points on the grid that have neighbours within the search
     # radius, these are the non-zero points of the KDE surface
-    kde_pnts = pd.DataFrame(kdt.query_ball_point(xy, r=radius), columns=["nn"])
+
+    all_query_results = [None for i in range(xy.shape[0])]  # Pre-allocate lists for each grid point
+    print("Total item count: ", xy.shape[0])
+    # Process each chunk
+    for i in range(0, xy.shape[0], chunk_size):
+        print("processing chunk ", i)
+        # Get the current chunk of grid points
+        xy_chunk = xy[i:i + chunk_size]
+
+        # Query the current chunk against the cKDTree for neighbors within the radius
+        query_result = kdt.query_ball_point(xy_chunk, r=radius)
+
+        # Adjust the indices because `query_ball_point` returns indices relative to the chunk.
+        # Add the offset `i` to each index to map them back to the original data indices.
+        for j, neighbors in enumerate(query_result):
+            grid_point_index = i + j  # Calculate the index of the grid point in the original `xy`
+            if neighbors:  # Only store if there are neighbors within the radius
+                adjusted_neighbors = [int(n) for n in neighbors]
+                all_query_results[grid_point_index] = adjusted_neighbors
+
+    # create a dataframe by filling out all the missing grid points
+    kde_pnts = pd.DataFrame(all_query_results, columns=["nn"])
+    # kde_pnts = pd.DataFrame(query_result, columns=["nn"])
 
     # Filter out points that have no neighbours within the search radius
-    kde_pnts["num"] = kde_pnts.nn.apply(len)
+    kde_pnts["num"] = kde_pnts['nn'].apply(lambda nn: len(nn) if nn is not None else 0)
     kde_pnts = kde_pnts.query("num > 0").drop(columns=["num"])
 
-    # Slow implementation iterating over every pixel / point
+    # create an array to store the KDE values
     ndv = -9999
     z_scalar = (ndv + np.zeros_like(xc)).flatten()
 
-    # TODO vectorise this
     # calculate the KDE value for every point that has neighbours
     for row in kde_pnts.itertuples():
-        centre = Point(xy[row.Index])
-        distances = [centre.distance(points.at[i, "geometry"]) for i in row.nn]
+        centre = [xy[row.Index]]
+        corresponding_points = points_np_array[row.nn]
+        distances = distance.cdist(centre, corresponding_points, 'euclidean').flatten()
 
         weights = None
         if weight_col:
             weights = [points.at[i, weight_col] for i in row.nn]
 
-        z_scalar[row.Index] = quartic(
-            distances=distances,
-            radius=radius,
-            weights=weights,
-            scaled=scaled,
+        z_scalar[row.Index] = dtype(
+            quartic(
+                distances=distances,
+                radius=radius,
+                weights=weights,
+                scaled=scaled,
+            )
         )
 
     # create the output raster
     z = z_scalar.reshape(xc.shape)
     with rasterio.open(
-        fp=output_path,
-        mode="w",
-        driver=output_driver,
-        height=z.shape[0],
-        width=z.shape[1],
-        count=1,
-        dtype=z.dtype,
-        crs=CRS.from_user_input(points.crs),
-        transform=rasterio.transform.from_bounds(
-            west=bounds.min_x,
-            south=bounds.min_y,
-            east=bounds.max_x,
-            north=bounds.max_y,
-            width=z.shape[1],
+            fp=output_path,
+            mode="w",
+            driver=output_driver,
             height=z.shape[0],
-        ),
-        nodata=ndv,
+            width=z.shape[1],
+            count=1,
+            dtype=z.dtype,
+            crs=CRS.from_user_input(points.crs),
+            transform=rasterio.transform.from_bounds(
+                west=bounds.min_x,
+                south=bounds.min_y,
+                east=bounds.max_x,
+                north=bounds.max_y,
+                width=z.shape[1],
+                height=z.shape[0],
+            ),
+            nodata=ndv,
     ) as dst:
         # numpy arrays start at the "bottom left", whereas rasters are written
         # from the "top left", hence flipping the array up-down before writing
